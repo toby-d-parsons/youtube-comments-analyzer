@@ -1,10 +1,23 @@
 require "net/http"
 require "uri"
 require "json"
+require "csv"
 
 GEMINI_API_KEY = File.read('api_gemini.key').strip
 
 MODEL_ID = 'gemini-1.5-flash-latest'
+
+FILENAME = "output.csv"
+
+comment_arr = []
+
+CSV.foreach(FILENAME) do |row|
+  begin
+    comment_arr << row
+  rescue CSV::MalformedCSVError => e
+    puts "Skipping malformed line: #{e.message}"
+  end
+end
 
 uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{MODEL_ID}:generateContent?key=#{GEMINI_API_KEY}")
 
@@ -22,9 +35,27 @@ request.body = {
   },
   "contents" => {
     "parts" => {
-      "text" => "INSERT LIST OF COMMENTS"
+      "text" => "#{comment_arr}"
     }
-  }
+  },
+  "safety_settings" => [
+    {
+      "category" => "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      "threshold" => "BLOCK_NONE"
+    },
+    {
+      "category" => "HARM_CATEGORY_HATE_SPEECH",
+      "threshold" => "BLOCK_NONE"
+    },
+    {
+      "category": "HARM_CATEGORY_HARASSMENT",
+      "threshold": "BLOCK_NONE"
+    },
+    {
+      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+      "threshold": "BLOCK_NONE"
+    }
+  ] 
 }.to_json
 
 response = http.request(request)
