@@ -3,62 +3,85 @@ require "uri"
 require "json"
 require "csv"
 
-GEMINI_API_KEY = File.read('api_gemini.key').strip
+class GeminiRequestHandler
+  GEMINI_API_KEY = File.read('api_gemini.key').strip
+  MODEL_ID = 'gemini-1.5-flash-latest'
+  FILENAME = "output.csv"
 
-MODEL_ID = 'gemini-1.5-flash-latest'
+  def initialize
+    @comment_arr = []
+  end
 
-FILENAME = "output.csv"
+  def parse_csv_to_array
+    CSV.foreach(FILENAME) do |row|
+      begin
+        @comment_arr << row
+      rescue CSV::MalformedCSVError => e
+        puts "Skipping malformed line: #{e.message}"
+      end
+    end
+  end
 
-comment_arr = []
+  def gemini_uri
+    URI("https://generativelanguage.googleapis.com/v1beta/models/#{MODEL_ID}:generateContent?key=#{GEMINI_API_KEY}")
+  end
 
-CSV.foreach(FILENAME) do |row|
-  begin
-    comment_arr << row
-  rescue CSV::MalformedCSVError => e
-    puts "Skipping malformed line: #{e.message}"
+  def build_request
+    request = Net::HTTP::Post.new(gemini_uri.path + "?key=#{GEMINI_API_KEY}", { 'Content-Type' => 'application/json' })
+    request.body = request_payload.to_json
+    request
+  end
+
+  def request_payload
+    {
+      "system_instruction" => {
+        "parts" => {
+          "text" => "The contents being entered are a selection of comments from a YouTube video. Provide a short description of the overall feel of the video"
+        }
+      },
+      "contents" => {
+        "parts" => {
+          "text" => "#{@comment_arr}"
+        }
+      },
+      "safety_settings" => safety_settings
+    }
+  end
+
+  def safety_settings
+    [
+        {
+          "category" => "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          "threshold" => "BLOCK_NONE"
+        },
+        {
+          "category" => "HARM_CATEGORY_HATE_SPEECH",
+          "threshold" => "BLOCK_NONE"
+        },
+        {
+          "category": "HARM_CATEGORY_HARASSMENT",
+          "threshold": "BLOCK_NONE"
+        },
+        {
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "threshold": "BLOCK_NONE"
+        }
+      ]
+  end
+
+  def get_gemini_response
+    http = Net::HTTP.new(gemini_uri.host, gemini_uri.port)
+    http.use_ssl = (gemini_uri.scheme == "https")
+    response = http.request(build_request)
+    handle_response(response)
+  end
+
+  def handle_response(response)
+    puts "Response body: #{response.body}"
+    puts "Response status: #{response.code}"
   end
 end
 
-uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{MODEL_ID}:generateContent?key=#{GEMINI_API_KEY}")
-
-http = Net::HTTP.new(uri.host, uri.port)
-
-http.use_ssl = (uri.scheme == "https")
-
-request = Net::HTTP::Post.new(uri.path + "?key=#{GEMINI_API_KEY}", { 'Content-Type' => 'application/json' })
-
-request.body = {
-  "system_instruction" => {
-    "parts" => {
-      "text" => "The contents being entered are a selection of comments from a YouTube video. Provide a short description of the overall feel of the video"
-    }
-  },
-  "contents" => {
-    "parts" => {
-      "text" => "#{comment_arr}"
-    }
-  },
-  "safety_settings" => [
-    {
-      "category" => "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-      "threshold" => "BLOCK_NONE"
-    },
-    {
-      "category" => "HARM_CATEGORY_HATE_SPEECH",
-      "threshold" => "BLOCK_NONE"
-    },
-    {
-      "category": "HARM_CATEGORY_HARASSMENT",
-      "threshold": "BLOCK_NONE"
-    },
-    {
-      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-      "threshold": "BLOCK_NONE"
-    }
-  ] 
-}.to_json
-
-response = http.request(request)
-
-puts "Response body: #{response.body}"
-puts "Response status: #{response.code}"
+gemini_request_handler = GeminiRequestHandler.new
+gemini_request_handler.parse_csv_to_array
+gemini_request_handler.get_gemini_response
