@@ -14,7 +14,7 @@ This terminal-based application allows you to scrape top-level comments from You
 
 1. Clone the repository
     ```bash
-    git clone https://github.com/toby-d-parsons/youtube-comments-scraper.git
+    git clone https://github.com/toby-d-parsons/youtube-comments-analyzer.git
     ```
 2. Navigate to the project directory
     ```bash
