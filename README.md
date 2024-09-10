@@ -1,4 +1,4 @@
-# youtube-comments-scraper
+# youtube-comments-analyzer
 
 ## Description
 
