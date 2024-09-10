@@ -77,8 +77,9 @@ class GeminiRequestHandler
   end
 
   def handle_response(response)
-    puts "Response body: #{response.body}"
-    puts "Response status: #{response.code}"
+    parsed_data = JSON.parse(response.body)
+    text = parsed_data["candidates"][0]["content"]["parts"][0]["text"]
+    puts text
   end
 end
 
