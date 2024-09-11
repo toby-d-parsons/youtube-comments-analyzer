@@ -82,7 +82,3 @@ class GeminiRequestHandler
     puts text
   end
 end
-
-gemini_request_handler = GeminiRequestHandler.new
-gemini_request_handler.parse_csv_to_array
-gemini_request_handler.get_gemini_response

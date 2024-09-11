@@ -30,9 +30,3 @@ class YouTubeCommentsScraper
     end
   end
 end
-
-scraper = YouTubeCommentsScraper.new('W3id8E34cRQ')
-comments_thread = scraper.get_comments_thread
-scraper.export_to_csv(comments_thread)
-
-puts "Scraper initialized"
